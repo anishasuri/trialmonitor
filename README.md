@@ -3,7 +3,7 @@ samples-python % temporal workflow start \
   --type MonitorStudiesWorkflow \
   --task-queue hello-activity-task-queue \
   --workflow-id monitor-studies-demo \
-  --input '"/Users/asuri1/PycharmProjects/samples-python/hello/trialsdata.json"'
+  --input '"hello/trialsdata.json"'
 
 
 
@@ -38,76 +38,108 @@ API: https://clinicaltrials.gov/data-api/api.
 ## Prerequisites
 
 - Python deps installed for this repo (`uv sync` from repo root).
-- Temporal CLI installed.
-- Temporal local dev server running on `127.0.0.1:7233`.
+# Trial Monitor Demo (hello/trial_monitor.py)
 
----
+This demo shows how to run a Temporal worker for clinical trial monitoring and view parent/child workflows in Temporal UI.
 
-## Quick Start
+## What You Will See
 
-From repo root:
+1. A parent workflow, `MonitorStudiesWorkflow`, started with a JSON file input.
+2. Child workflows, one per study, with workflow IDs in the format `monitor-<NCT_ID>`.
+3. Continuous workflow activity visible in Temporal UI.
+
+## Prerequisites
+
+- Python 3.10+ (this repo uses uv)
+- uv installed: https://docs.astral.sh/uv/
+- Temporal CLI installed: https://docs.temporal.io/cli#install
+
+## Run Trial Monitor End-to-End
+
+Open three terminals from the repository root.
+
+Terminal 1: install dependencies (first run only) and start Temporal dev server
 
 ```bash
 uv sync
-
-
-Start Temporal server:
 temporal server start-dev
+```
 
-In another terminal run,
+Expected: Temporal server listens on `127.0.0.1:7233` and UI is available at `http://localhost:8233`.
+
+Terminal 2: start the worker
+
+```bash
+source .venv/bin/activate
 uv run hello/trial_monitor.py
+```
 
+This worker polls task queue `hello-activity-task-queue` and hosts:
 
+- `MonitorStudiesWorkflow`
+- `MonitorStudyWorkflow`
+- activities used by both workflows
 
+Terminal 3: start the parent workflow
 
+```bash
+temporal workflow start \
+  --type MonitorStudiesWorkflow \
+  --task-queue hello-activity-task-queue \
+  --workflow-id monitor-studies-demo \
+  --input '"hello/trialsdata.json"'
+```
 
+Notes:
 
+- Run this command from the repo root so `hello/trialsdata.json` resolves correctly.
+- If you use an absolute path, make sure it exists on your machine.
 
+## Verify in Temporal UI
 
+1. Open `http://localhost:8233`.
+2. Namespace should be `default`.
+3. Find workflow ID `monitor-studies-demo`.
+4. Open it and inspect child workflows. You should see IDs such as `monitor-NCT00558935`.
 
+## Useful Commands
 
+List recent workflows:
 
+```bash
+temporal workflow list
+```
 
+Show one workflow:
 
+```bash
+temporal workflow describe --workflow-id monitor-studies-demo
+```
 
+Terminate and restart if needed:
 
+```bash
+temporal workflow terminate --workflow-id monitor-studies-demo --reason "restart"
+```
 
+## Troubleshooting
 
+`FileNotFoundError` for trialsdata.json
 
-# Temporal Python SDK Samples
+- Cause: workflow input points to a path that does not exist on your machine.
+- Fix: start workflow with `--input '"hello/trialsdata.json"'` from repo root.
 
-This is a collection of samples showing how to use the [Python SDK](https://github.com/temporalio/sdk-python).
+Workflow does not appear in UI
 
-## Usage
+- Ensure Temporal server is running (`temporal server start-dev`).
+- Ensure worker is running (`uv run hello/trial_monitor.py`).
+- Ensure task queue matches exactly: `hello-activity-task-queue`.
 
-Prerequisites:
+Worker starts but no progress
 
-* [uv](https://docs.astral.sh/uv/)
-* [Temporal CLI installed](https://docs.temporal.io/cli#install)
-* [Local Temporal server running](https://docs.temporal.io/cli/server#start-dev)
+- Check worker terminal for activity/workflow errors.
+- Confirm namespace is `default` in UI and CLI.
 
-The SDK requires Python >= 3.10. You can install Python using uv. For example,
-
-    uv python install 3.13
-
-With this repository cloned, run the following at the root of the directory:
-
-    uv sync
-
-That loads all required dependencies. Then to run a sample, usually you just run it under uv. For example:
-
-    uv run hello/hello_activity.py
-
-Some examples require extra dependencies. See each sample's directory for specific instructions.
-
-## Samples
-
-* [hello](hello) - All of the basic features.
-  <!-- Keep this list in alphabetical order and in sync on hello/README.md and root README.md -->
-  * [hello_activity](hello/hello_activity.py) - Execute an activity from a workflow.
-  * [hello_activity_choice](hello/hello_activity_choice.py) - Execute certain activities inside a workflow based on
-    dynamic input.
-  * [hello_activity_method](hello/hello_activity_method.py) - Demonstrate an activity that is an instance method on a
     class and can access class state.
   * [hello_activity_multiprocess](hello/hello_activity_multiprocess.py) - Execute a synchronous activity on a process
     pool.
