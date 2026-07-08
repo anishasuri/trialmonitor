@@ -1,4 +1,14 @@
-Run:
+API call run:
+Terminal 1: temporal server start-dev
+Terminal 2:  uv run hello/trial_monitor_V2.py worker
+Terminal 3: uv run hello/trial_monitor_V2.py start-parent \
+  --condition "primary biliary cholangitis" \
+  --max-studies 5 \
+  --poll-interval-seconds 60 \
+  --workflow-id "trial-monitor-pbc"
+
+
+JSON read Run:
 samples-python % temporal workflow start \
   --type MonitorStudiesWorkflow \
   --task-queue hello-activity-task-queue \
